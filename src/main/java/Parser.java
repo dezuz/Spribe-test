@@ -1,3 +1,4 @@
+import lombok.Getter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+@Getter
 public class Parser {
     private Document document;
     private String url;
@@ -33,42 +35,37 @@ public class Parser {
                 .distinct()
                 .forEach(articles::add);
 
-
         sections.remove(8);
         for (int i = 0; i < 5; i++) {
             articles.remove(40);
         }
-        /*sections.remove(8);
-        for (int i = 0; i < 5; i++) {
-            articles.remove(40);
-        }*/
-        /*Random random = new Random();
-        int x = random.ints(1, 11).findFirst().getAsInt();
-
-        System.out.println(x);
-
-        for (int i = (x * 5) - 5; i < x * 5; i++) {
-            System.out.println(postsHref.get(i));
-        }*/
     }
 
-
-    public void setSections(String section) {
+    public SectionTable setSections(String section) {
         ConnectorUtil util = new ConnectorUtil();
+        SectionTable sectionEntity = null;
+        if (section == null) {
+            throw new IllegalArgumentException("section null");
+        }
         int index = sections.indexOf(section);
         try {
-            SectionTable sectionEntity = new SectionTable()
+            sectionEntity = new SectionTable()
                     .setName(sections.get(index));
             util.insertSectionsValues(sectionEntity);
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return sectionEntity;
     }
 
-    public void setArticles(String article) {
+    public ArticleTable setArticles(String article) {
         ConnectorUtil util = new ConnectorUtil();
+        ArticleTable articleEntity = null;
+        if (article == null) {
+            throw new IllegalArgumentException("article is null");
+        }
         try {
-            ArticleTable articleEntity = new ArticleTable()
+            articleEntity = new ArticleTable()
                     .setAuthorName(getAuthorName(articles, articles.indexOf(article)))
                     .setPostedDate(getPostedDate(articles, articles.indexOf(article)))
                     .setName(getName(articles, articles.indexOf(article)))
@@ -77,6 +74,7 @@ public class Parser {
         } catch (SQLException | IOException e) {
             e.printStackTrace();
         }
+        return articleEntity;
     }
 
     private String getContent(List<String> articles, int index) throws IOException {
@@ -99,7 +97,7 @@ public class Parser {
                 .replaceAll(",", "");
     }
 
-    private String getName(List<String> articles,  int index) throws IOException {
+    private String getName(List<String> articles, int index) throws IOException {
         url = articles.get(index);
         document = Jsoup.connect(url).get();
         return document.select("h1")
@@ -107,20 +105,11 @@ public class Parser {
                 .text();
     }
 
-    private String getAuthorName(List<String> articles,  int index) throws IOException {
+    private String getAuthorName(List<String> articles, int index) throws IOException {
         url = articles.get(index);
         document = Jsoup.connect(url).get();
         return document.select(".paid-author-wrapper .author .author_name")
                 .first()
                 .text();
-    }
-
-    public static void main(String[] args) throws IOException {
-        Parser parser = new Parser();
-        parser.parser();
-        Long start = System.currentTimeMillis();
-        parser.articles.parallelStream().forEach(parser::setArticles);
-        parser.sections.parallelStream().forEach(parser::setSections);
-        System.out.println(System.currentTimeMillis() - start);
     }
 }
